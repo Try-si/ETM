@@ -112,8 +112,8 @@ func GetAllImagesInDirectory(path string) map[string]image.Image { // obtenir to
 func CheckCollision(box [4]float64, elements []*ETEStruct.Sprite, maxDist float64, Unité int) bool { // vérifier si une boîte collisionne avec des éléments (maxDist en unités)
 	maxDist *= float64(Unité)
 	for _, element := range elements { // pour chaque élément
-		Box := ElementToBox(element)                                                           // obtenir la boîte de l'élément
-		if MV2.V2Distance([2]float64{box[2], box[3]}, [2]float64{Box[2], Box[3]}) <= maxDist { // si la distance entre les centres est inférieure à la distance maximale (en unités)
+		Box := ElementToBox(element)                                                         // obtenir la boîte de l'élément
+		if MV2.Distance([2]float64{box[2], box[3]}, [2]float64{Box[2], Box[3]}) <= maxDist { // si la distance entre les centres est inférieure à la distance maximale (en unités)
 			if CheckIntersection([2][4]float64{box, Box}, Unité) { // vérifier si les boîtes se chevauchent
 				return true
 			}

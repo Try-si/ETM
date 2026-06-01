@@ -2,13 +2,10 @@ module github.com/Try-si/ETM
 
 go 1.25.2
 
-require (
-	github.com/hajimehoshi/ebiten v1.12.13
-	github.com/lafriks/go-tiled v0.14.0
-)
+require github.com/lafriks/go-tiled v0.14.0
 
 require (
-	github.com/Try-si/MathHelper v0.1.11 // indirect
+	github.com/Try-si/MathHelper v0.1.12 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
