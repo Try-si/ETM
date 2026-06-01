@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/Try-si/MathHelper v0.1.8 // indirect
+	github.com/Try-si/MathHelper v0.1.11 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
