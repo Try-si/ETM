@@ -14,11 +14,11 @@ var (
 	Assets assets.Assets   // assets instance
 )
 
-func Init(update func(float64) error) {
+func Init(update func(float64) error, configPath string) {
 	Gam = &ETEStruct.Game{}
 
-	Gam.Conf = ETMhelper.Jsontostruct[ETEStruct.Config]("config.json") // initialisé la config
-	Gam.UpdateFunc = update                                            // fonction de mise à jour
+	Gam.Conf = ETMhelper.Jsontostruct[ETEStruct.Config](configPath) // initialisé la config
+	Gam.UpdateFunc = update                                         // fonction de mise à jour
 
 	Assets = assets.Assets{}                // initialisé l'assets
 	Assets.SpritePath = Gam.Conf.SpritePath // indiqué le chemin des sprites
