@@ -25,23 +25,26 @@ func Init(update func(float64) error, configPath string) {
 	}
 	Gam.UpdateFunc = update // fonction de mise à jour
 
+	Gam.MapConf = ETMhelper.Jsontostruct[ETEStruct.MapConfig](Gam.Conf.MapsPath)
+
 	Assets = assets.Assets{}                // initialisé l'assets
 	Assets.SpritePath = Gam.Conf.SpritePath // indiqué le chemin des sprites
-	Assets.MapsPath = Gam.Conf.MapsPath     // indiqué le chemin des maps
+	Assets.MapsPath = Gam.MapConf.ImgMap    // indiqué le chemin des maps
 	Assets.Init()                           // initialisé les assets
 
 	Gam.Assets = &Assets
 
 	Gam.Maps = make(map[string]ETEStruct.Map) // initialisé les maps
 
-	Map := ETMhelper.GetAllFilesInDirectoryToStruct[ETEStruct.Map](Gam.Conf.JsonMapPath) // récupère toutes les maps
+	Maps := ETMhelper.GetAllFilesInDirectoryToStruct[ETEStruct.Map](Gam.MapConf.JsonMap) // récupère toutes les maps
 
-	for _, mapData := range Map {
-		Gam.Maps[mapData.Name] = mapData.Obj // ajoute la map au dictionnaire
+	for _, mapData := range Maps {
+		Gam.Maps[mapData.Name] = mapData.Obj                                          // ajoute la map au dictionnaire
+		Gam.Maps[mapData.Name] = Gam.Maps[mapData.Name].MapInit(Gam.MapConf.Elements) // initialise la map
 	}
 
-	startMapData := Gam.Maps[Gam.Conf.StartMap]                    // récupère la map de départ
-	Gam.SetScene(Gam.Conf.StartMap, Assets.Maps[startMapData.Map]) // set la scene de départ
+	startMapData := Gam.Maps[Gam.Conf.Map]                    // récupère la map de départ
+	Gam.SetScene(Gam.Conf.Map, Assets.Maps[startMapData.Map]) // set la scene de départ
 }
 
 func GameLoop() {

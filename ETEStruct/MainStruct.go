@@ -1,7 +1,9 @@
 package ETEStruct
 
 import (
+	"encoding/json"
 	"image/color"
+	"os"
 	"sort"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -16,35 +18,41 @@ type AssetsProvider interface {
 type Game struct {
 	Elements []*Sprite // tous les éléments dans le jeu
 	Map      *Sprite   // map actuelle
-	Mape     string    // nom de la map actuelle
 
 	UpdateFunc func(float64) error // fonction de mise à jour
 	Assets     AssetsProvider      // fournisseur d'assets
 	Maps       map[string]Map      // toutes les maps
 	Conf       Config              // configuration
+	MapConf    MapConfig           // configuration des maps
 
 	Debug bool // debug mode
 }
 
 type Sprite struct {
-	Image     string     // image name
-	Pos, Size [2]float64 // position and size
-	Rotation  float64    // rotation
-	Layer     int        // layer
-	Box       [4]float64 // bounding box
+	Image, Name string     // image name
+	Pos, Size   [2]float64 // position and size
+	Rotation    float64    // rotation
+	Layer       int        // layer
+	Box         [4]float64 // bounding box
+	MetaData    map[string]string
 }
 
 type Config struct {
-	ScreenWidth  int     // largeur de l'écran
-	ScreenHeight int     // hauteur de l'écran
-	Title        string  // titre de la fenêtre
-	SpritePath   string  // chemin vers les sprites
-	MapsPath     string  // chemin vers les maps
-	StartMap     string  // map de départ
-	JsonMapPath  string  // chemin vers les maps json
-	CellSize     float64 // taille de la cellule
-	Unité        int     // taille d'une unité en pixels
-	Cam          Caméra  // caméra
+	ScreenWidth  int    // largeur de l'écran
+	ScreenHeight int    // hauteur de l'écran
+	Title        string // titre de la fenêtre
+
+	SpritePath string // chemin vers les sprites
+	SoundPath  string // chemin vers les sons
+	MapsPath   string // chemin vers le json pour la configuration des maps
+	Map        string // map actuelle
+}
+
+type MapConfig struct {
+	Maps     []string // noms des maps
+	JsonMap  string   // chemin vers le dossié des maps
+	ImgMap   string   // chemin vers le dossié des images des maps
+	Elements string   // chemin vers le dossié des éléments
 }
 
 type Caméra struct {
@@ -54,7 +62,10 @@ type Caméra struct {
 type Map struct {
 	Map      string   // nom de la map
 	Elements []Sprite // éléments dans la map
-	TileSize int      // taille des tuiles
+
+	CellSize float64 // taille de la cellule
+	Unité    int     // taille d'une unité en pixels
+	Cam      Caméra  // caméra
 }
 
 func GetElementByHashMap(Elements []*Sprite, cellSize float64) map[string][]*Sprite { // regrouper les éléments par hash map
@@ -79,14 +90,49 @@ func drawCircle(screen *ebiten.Image, x, y, radius float64, clr color.Color) { /
 	}
 }
 
+func (m Map) MapInit(ElementPath string) Map {
+	elements := LoadElements(ElementPath)
+	for i, e := range m.Elements {
+		m.Elements[i] = elements[e.Name]
+		m.Elements[i].Name = e.Name
+		m.Elements[i].Pos = e.Pos
+		m.Elements[i].MetaData = e.MetaData
+	}
+
+	return m
+}
+
+func LoadElements(ElementPath string) map[string]Sprite {
+	type temp struct {
+		Elements map[string]Sprite
+	}
+	data := Jsontostruct[temp](ElementPath)
+	return data.Elements
+}
+
+func Jsontostruct[T any](path string) T { // convertir un fichier json en struct
+	t := *new(T)                   // créer une nouvelle instance de T
+	data, err := os.ReadFile(path) // lire le fichier
+	if err != nil {                // si une erreur est survenue
+		return *new(T) // retourner une instance vide
+	}
+	err = json.Unmarshal(data, &t) // déserialiser le json
+	if err != nil {                // si une erreur est survenue
+		return *new(T) // retourner une instance vide
+	}
+	return t
+}
+
 func (g *Game) SetScene(Map string, MapImage *ebiten.Image) { // définir la scène
 	g.Map = &Sprite{ // créer la map
 		Image:    g.Maps[Map].Map,
 		Pos:      [2]float64{0, 0},
-		Size:     [2]float64{float64(MapImage.Bounds().Dx()) / float64(g.Conf.Unité), float64(MapImage.Bounds().Dy()) / float64(g.Conf.Unité)},
+		Size:     [2]float64{float64(MapImage.Bounds().Dx()) / float64(g.Maps[Map].Unité), float64(MapImage.Bounds().Dy()) / float64(g.Maps[Map].Unité)},
 		Rotation: 0,
 		Layer:    -100,
 	}
+
+	g.Conf.Map = Map
 
 	MapData := g.Maps[Map] // obtenir les données de la map
 	for i := range MapData.Elements {
@@ -128,17 +174,17 @@ func (g *Game) Draw(screen *ebiten.Image) { // dessiner la scène
 			}
 		}
 		if g.Debug { // si le mode debug est activé
-			posX := (element.Pos[0] - g.Conf.Cam.Offset[0]) * float64(g.Conf.Unité) // calculer la position x en pixels
-			posY := (element.Pos[1] + g.Conf.Cam.Offset[1]) * float64(g.Conf.Unité) // calculer la position y en pixels
+			posX := (element.Pos[0] - g.Maps[g.Conf.Map].Cam.Offset[0]) * float64(g.Maps[g.Conf.Map].Unité) // calculer la position x en pixels
+			posY := (element.Pos[1] + g.Maps[g.Conf.Map].Cam.Offset[1]) * float64(g.Maps[g.Conf.Map].Unité) // calculer la position y en pixels
 
-			whith := element.Box[0] * float64(g.Conf.Unité)  // obtenir la largeur de la hitbox en pixels
-			height := element.Box[1] * float64(g.Conf.Unité) // obtenir la hauteur de la hitbox en pixels
+			whith := element.Box[0] * float64(g.Maps[g.Conf.Map].Unité)  // obtenir la largeur de la hitbox en pixels
+			height := element.Box[1] * float64(g.Maps[g.Conf.Map].Unité) // obtenir la hauteur de la hitbox en pixels
 
 			if element.Box[2] != 0 { // si xOffset est différent de 0
-				posX += element.Box[2] * float64(g.Conf.Unité)
+				posX += element.Box[2] * float64(g.Maps[g.Conf.Map].Unité)
 			}
 			if element.Box[3] != 0 { // si yOffset est différent de 0
-				posY += element.Box[3] * float64(g.Conf.Unité)
+				posY += element.Box[3] * float64(g.Maps[g.Conf.Map].Unité)
 			}
 
 			if whith == 0 && height == 0 { // si la hitbox n'est pas définie
@@ -158,28 +204,28 @@ func (g *Game) Draw(screen *ebiten.Image) { // dessiner la scène
 		width := float64(img.Bounds().Dx())               // largeur de l'image en pixels
 		height := float64(img.Bounds().Dy())              // hauteur de l'image en pixels
 		if element.Size[0] != 0 && element.Size[1] != 0 { // si la taille est définie
-			width = element.Size[0] * float64(g.Conf.Unité)  // largeur en pixels
-			height = element.Size[1] * float64(g.Conf.Unité) // hauteur en pixels
+			width = element.Size[0] * float64(g.Maps[g.Conf.Map].Unité)  // largeur en pixels
+			height = element.Size[1] * float64(g.Maps[g.Conf.Map].Unité) // hauteur en pixels
 		}
 		opts.GeoM.Translate(-width/2, -height/2) // centrer sur l'origine
 
 		// 2. Scale (avec zoom)
 		if element.Size[0] != 0 && element.Size[1] != 0 { // si la taille est définie
-			opts.GeoM.Scale(float64(element.Size[0]*float64(g.Conf.Unité))/float64(img.Bounds().Dx()), float64(element.Size[1]*float64(g.Conf.Unité))/float64(img.Bounds().Dy()))
-			// scale with element size : element.Size = taille en unité, * g.Conf.Unité = mettre taille en pixels, / img.Bounds().Dx() = scale
+			opts.GeoM.Scale(float64(element.Size[0]*float64(g.Maps[g.Conf.Map].Unité))/float64(img.Bounds().Dx()), float64(element.Size[1]*float64(g.Maps[g.Conf.Map].Unité))/float64(img.Bounds().Dy()))
+			// scale with element size : element.Size = taille en unité, * g.Maps[g.Conf.Map].Unité = mettre taille en pixels, / img.Bounds().Dx() = scale
 		} else {
-			opts.GeoM.Scale(float64(g.Conf.Unité), float64(g.Conf.Unité))
+			opts.GeoM.Scale(float64(g.Maps[g.Conf.Map].Unité), float64(g.Maps[g.Conf.Map].Unité))
 		}
 
 		// 3. Rotate
 		opts.GeoM.Rotate(element.Rotation) // rotate
 
 		// 4. Translate vers la position finale (sans zoom dans la translation)
-		opts.GeoM.Translate(float64(element.Pos[0])*float64(g.Conf.Unité), float64(element.Pos[1])*float64(g.Conf.Unité)) // translate
+		opts.GeoM.Translate(float64(element.Pos[0])*float64(g.Maps[g.Conf.Map].Unité), float64(element.Pos[1])*float64(g.Maps[g.Conf.Map].Unité)) // translate
 
 		// 5. Camera offset (avec zoom)
-		opts.GeoM.Scale(g.Conf.Cam.Zoom[0], g.Conf.Cam.Zoom[1])                                                     // Zoom
-		opts.GeoM.Translate(g.Conf.Cam.Offset[0]*float64(g.Conf.Unité), g.Conf.Cam.Offset[1]*float64(g.Conf.Unité)) // Center
+		opts.GeoM.Scale(g.Maps[g.Conf.Map].Cam.Zoom[0], g.Maps[g.Conf.Map].Cam.Zoom[1])                                                                             // Zoom
+		opts.GeoM.Translate(g.Maps[g.Conf.Map].Cam.Offset[0]*float64(g.Maps[g.Conf.Map].Unité), g.Maps[g.Conf.Map].Cam.Offset[1]*float64(g.Maps[g.Conf.Map].Unité)) // Center
 
 		screen.DrawImage(img, opts) // dessiner l'image
 	}

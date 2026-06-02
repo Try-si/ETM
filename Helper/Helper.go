@@ -17,11 +17,11 @@ func Jsontostruct[T any](path string) T { // convertir un fichier json en struct
 	t := *new(T)                   // créer une nouvelle instance de T
 	data, err := os.ReadFile(path) // lire le fichier
 	if err != nil {                // si une erreur est survenue
-		return *new(T)
+		return *new(T) // retourner une instance vide
 	}
 	err = json.Unmarshal(data, &t) // déserialiser le json
 	if err != nil {                // si une erreur est survenue
-		return *new(T)
+		return *new(T) // retourner une instance vide
 	}
 	return t
 }
@@ -29,7 +29,7 @@ func Jsontostruct[T any](path string) T { // convertir un fichier json en struct
 func GetAllFilesInDirectory(path string) []string { // obtenir tous les fichiers dans un dossier
 	files, err := os.ReadDir(path) // lire le dossier
 	if err != nil {                // si une erreur est survenue
-		return nil
+		return nil // retourner un slice vide
 	}
 	result := make([]string, len(files)) // créer un slice de string
 	for i, file := range files {         // pour chaque fichier
@@ -57,13 +57,13 @@ func GetAllFilesInDirectoryToStruct[T any](path string) []struct {
 	return result
 }
 
-func StringToStruct[T any](s string) T {
-	var t T
-	err := json.Unmarshal([]byte(s), &t)
-	if err != nil {
-		return *new(T)
+func StringToStruct[T any](s string) T { // convertir une string en struct
+	var t T                              // créer une nouvelle instance de T
+	err := json.Unmarshal([]byte(s), &t) // déserialiser la string
+	if err != nil {                      // si une erreur est survenue
+		return *new(T) // retourner une instance vide
 	}
-	return t
+	return t // retourner la struct
 }
 
 func TiledMapToImage(Map *tiled.Map) image.Image { // convertir une carte tiled en image
@@ -88,7 +88,7 @@ func GetAllFilesInDirectoryToMap(path string) map[string]tiled.Map { // obtenir 
 
 	for _, file := range GetAllFilesInDirectory(path) { // pour chaque fichier
 		gameMap, err := tiled.LoadFile(path + "/" + file)
-		if err != nil {
+		if err != nil { // si une erreur est survenue
 			fmt.Println("error parsing map: " + err.Error())
 			os.Exit(2)
 		}
