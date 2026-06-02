@@ -57,6 +57,15 @@ func GetAllFilesInDirectoryToStruct[T any](path string) []struct {
 	return result
 }
 
+func StringToStruct[T any](s string) T {
+	var t T
+	err := json.Unmarshal([]byte(s), &t)
+	if err != nil {
+		return *new(T)
+	}
+	return t
+}
+
 func TiledMapToImage(Map *tiled.Map) image.Image { // convertir une carte tiled en image
 	renderer, err := render.NewRenderer(Map) // créer un renderer
 	if err != nil {                          // si une erreur est survenue
